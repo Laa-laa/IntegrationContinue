@@ -13,3 +13,10 @@ def test_personnage_perd_1_hp_quand_attaque():
     p.recevoir_attaque()
     assert p.hp == 9
 
+def test_personnage_meurt_quand_hp_atteint_zero():
+    p = Personnage()
+    for _ in range(10):
+        p.recevoir_attaque()
+    assert not p.est_vivant()
+
+
