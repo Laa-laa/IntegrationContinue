@@ -8,3 +8,4 @@ class Personnage:
     def recevoir_attaque(self):
         if self.est_vivant():
             self.hp -= 2 #faux, essai echec test
+        return self.hp > 0
