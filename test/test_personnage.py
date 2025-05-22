@@ -19,4 +19,10 @@ def test_personnage_meurt_quand_hp_atteint_zero():
         p.recevoir_attaque()
     assert not p.est_vivant()
 
+def test_initialisation_personnage_nom_et_hp():
+    p = Personnage("Link")
+    
+    assert p.nom == "Link"
+    assert p.hp == 10
+
 
