@@ -7,3 +7,9 @@ def test_nouveau_personnage_a_10_points_de_vie():
 def test_personnage_est_vivant_par_defaut():
     p = Personnage()
     assert p.est_vivant()
+
+def test_personnage_perd_1_hp_quand_attaque():
+    p = Personnage()
+    p.recevoir_attaque()
+    assert p.hp == 9
+
