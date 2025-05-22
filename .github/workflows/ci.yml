@@ -1,0 +1,91 @@
+name: CI Dev → Master (sans token perso)
+
+on:
+  push:
+    branches: [dev]
+
+permissions:
+  contents: write
+  actions: read
+
+jobs:
+  build_and_test:
+    runs-on: ubuntu-latest
+    outputs:
+      result: ${{ steps.status.outputs.status }}
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pytest
+
+      - name: Compile all Python files
+        run: python -m py_compile $(find . -name "*.py")
+
+      - name: Run tests
+        id: tests
+        env:
+          PYTHONPATH: ${{ github.workspace }}
+        run: pytest
+        continue-on-error: true
+
+      - name: Record result
+        id: status
+        run: |
+          if [ "${{ steps.tests.outcome }}" = "success" ]; then
+            echo "status=success" >> $GITHUB_OUTPUT
+          else
+            echo "status=failure" >> $GITHUB_OUTPUT
+          fi
+
+  post_process:
+    needs: build_and_test
+    if: always()
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout with push rights
+        uses: actions/checkout@v4
+        with:
+          token: ${{ github.token }}
+          fetch-depth: 0
+
+      - name: Configure Git identity
+        run: |
+          git config user.name "ci-bot"
+          git config user.email "ci-bot@users.noreply.github.com"
+
+      - name: Fast-forward main (success)
+        if: needs.build_and_test.outputs.result == 'success'
+        run: |
+          git fetch origin
+          git checkout main
+          git merge origin/dev --no-edit --ff
+          git push origin main
+
+      - name: Isolate failing commit (failure)
+        if: needs.build_and_test.outputs.result != 'success'
+        env:
+          RUN_ID: ${{ github.run_id }}
+        run: |
+          git fetch origin
+          git branch failures/${RUN_ID} origin/dev
+          git push origin failures/${RUN_ID}
+          git checkout dev
+          git reset --hard HEAD~1
+          git push origin dev --force
+
+      - name: Fail CI if tests failed
+        if: needs.build_and_test.outputs.result != 'success'
+        run: |
+          echo "::error::Tests failed — commit moved to failures/${{ github.run_id }}."
+          exit 1
