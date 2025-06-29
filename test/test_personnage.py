@@ -25,4 +25,11 @@ def test_initialisation_personnage_nom_et_hp():
     assert p.nom == "Link"
     assert p.hp == 10
 
+def test_etat_retourne_vivant_ou_mort():
+    p = Personnage("Zelda")
+    assert p.etat() == "vivant"
 
+    for _ in range(10):
+        p.recevoir_attaque()
+
+    assert p.etat() == "mort"
